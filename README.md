@@ -17,6 +17,7 @@ You can test the stream with ffplay or VLC
 2. VLC (media->network stream)
 
 ![This stream will use 36.4% CPU](image1.jpg) 
+
 And this is how the streaming process look like
 
           _____________              ______________

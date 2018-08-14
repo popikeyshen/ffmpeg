@@ -17,6 +17,7 @@ You can test the stream with ffplay or VLC
 2. VLC (media->network stream)
 
 ![This stream will use 36.4% CPU](image1.jpg) 
+
 And this is how the streaming process look like
 
           _____________              ______________
@@ -52,10 +53,10 @@ Yes! Stdout is very slow! Of course we can use faster write method - named pipe,
 
 The efficientest way to stream with OpenCV code with ffmpeg and without pipelines. If we use this way we can abbadon double conversion. We can skip the demuxer, decoder and put the frame directly to encoder.
 
-                ________            ______________	      _________
+                ________            ______________	  _________
                |        |          |              |          |         |
                | OpenCV | -------->| encoded data | -------> | output  |
-               |  Mat   |  encoder | packets      |  muxer   |	file   |
+               |  Mat   |  encoder | packets      |  muxer   |  file   |
                |________|          |______________|          |_________|
 
 

@@ -44,18 +44,23 @@ int main(int argc, char* argv[])
 
     // open output format context
     AVFormatContext* outctx = NULL;
-    ret = avformat_alloc_output_context2(&outctx, NULL, "rtp_mpegts", outfile);
+    ret = avformat_alloc_output_context2(&outctx, NULL, "rtp_mpegts", outfile);  //with h264 is slower
     if (ret < 0) {
         std::cerr << "fail to avformat_alloc_output_context2(" << outfile << "): ret=" << ret;
         return 2;
     }
 
-    // open output IO context
+    // open output IO context 
     ret = avio_open2(&outctx->pb, outfile, AVIO_FLAG_WRITE, NULL, NULL);
     if (ret < 0) {
         std::cerr << "fail to avio_open2: ret=" << ret;
         return 2;
     }
+    	//AVDictionary *options = NULL;
+	//av_dict_set(&options, "pkt_size", "1300", 0);
+	//av_dict_set(&options, "buffer_size", "65535", 0);
+	//AVIOContext * server = NULL;
+	//avio_open2(&server, "rtp://192.168.0.96:1234", AVIO_FLAG_WRITE, NULL, &options);
 
     // create new video stream
     AVCodec* vcodec = avcodec_find_encoder(outctx->oformat->video_codec);
@@ -65,6 +70,7 @@ int main(int argc, char* argv[])
         return 2;
     }
     avcodec_get_context_defaults3(vstrm->codec, vcodec);
+
     vstrm->codec->width = dst_width;
     vstrm->codec->height = dst_height;
     vstrm->codec->pix_fmt = vcodec->pix_fmts[0];
@@ -118,26 +124,42 @@ int main(int argc, char* argv[])
     unsigned nb_frames = 0;
     bool end_of_stream = false;
     int got_pkt = 0;
+
+
+    AVPacket pkt;
     do {
         if (!end_of_stream) {
             // retrieve source image
             cvcap >> image;
             //cv::imshow("press ESC to exit", image);
-            if (cv::waitKey(1) == 0x1b)
+            if (cv::waitKey(30) == 0x1b)
                 end_of_stream = true;
         }
         if (!end_of_stream) {
             // convert cv::Mat(OpenCV) to AVFrame(FFmpeg)
             const int stride[] = { static_cast<int>(image.step[0]) };
-            sws_scale(swsctx, &image.data, stride, 0, image.rows, frame->data, frame->linesize);
+            sws_scale(swsctx, &image.data, stride, 0, image.rows, frame->data, frame->linesize); //0.002s
             frame->pts = frame_pts++;
+            
+	    //or dummy image
+	    //for (int y = 0; y < vstrm->codec->height; y++) {
+            //    for (int x = 0; x < vstrm->codec->width; x++) {
+            //        frame->data[0][y * frame->linesize[0] + x] = x + y ;
+            //    }
+            //}	
+
         }
         // encode video frame
-        AVPacket pkt;
-        pkt.data = NULL;
-        pkt.size = 0;
+
         av_init_packet(&pkt);
-        ret = avcodec_encode_video2(vstrm->codec, &pkt, end_of_stream ? NULL : frame, &got_pkt);
+        pkt.data = NULL;    // packet data will be allocated by the encoder
+        pkt.size = 0;    // 1300 if avio_write
+
+		clock_t t = clock() ;  //timer
+        ret = avcodec_encode_video2(vstrm->codec, &pkt, end_of_stream ? NULL : frame, &got_pkt); //0.003s
+		t = clock() - t;
+   		printf ("  t == %f \n",((float)t)/CLOCKS_PER_SEC);
+
         if (ret < 0) {
             std::cerr << "fail to avcodec_encode_video2: ret=" << ret << "\n";
             break;
@@ -145,10 +167,14 @@ int main(int argc, char* argv[])
         if (got_pkt) {
             // rescale packet timestamp
             pkt.duration = 1;
-            av_packet_rescale_ts(&pkt, vstrm->codec->time_base, vstrm->time_base);
+            av_packet_rescale_ts(&pkt, vstrm->codec->time_base, vstrm->time_base); //0.000007s
+
             // write packet
-            av_write_frame(outctx, &pkt);
-            std::cout << nb_frames << '\r' << std::flush;  // dump progress
+	    av_write_frame(outctx, &pkt); //0.0001s
+		//av_interleaved_write_frame(outctx, &pkt);
+ 		//avio_write(server, pkt.data, pkt.size);
+
+            //std::cout << nb_frames << '\r' << std::flush;  // dump progress
             ++nb_frames;
         }
         av_free_packet(&pkt);

@@ -1,6 +1,6 @@
 # Streaming opencv image with ffmpeg
 
-In this repository i will show and code example of ffmpeg streaming an OpneCV image and difference between ffmpeg pipeline with banchmarks.
+In this repository i will show and code example of ffmpeg streaming an OpenCV image and difference between ffmpeg pipeline with banchmarks.
 
 ## How to use ffmpeg
 

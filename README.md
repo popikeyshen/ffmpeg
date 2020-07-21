@@ -87,7 +87,7 @@ For example - streaming some video in to ffserver
 ```
 ffmpeg  -i ./video.mp4   http://localhost:8090/feed1.ffm
 ```
-Where ffserver settings are
+Where ffserver settings are /etc/ffserver.conf
 ```
 HttpPort 8090
 RtspPort 5554

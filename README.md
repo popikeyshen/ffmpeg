@@ -1,4 +1,4 @@
-# Streaming opencv image with ffmpeg
+# 1. Streaming opencv image with ffmpeg as RTP
 
 In this repository i will show and code example of ffmpeg streaming an OpenCV image and difference between ffmpeg pipeline with banchmarks.
 
@@ -78,6 +78,55 @@ make
 ```
 
 You need to have installed libavcodec, libavformat, libavutil, libswscale, libswresample.
+
+
+# 2. Streaming mp4 video with ffmpeg as RSTP
+
+For example - streaming some video in to ffserver
+
+```
+ffmpeg  -i ./video.mp4   http://localhost:8090/feed1.ffm
+```
+Where ffserver settings are
+```
+HttpPort 8090
+RtspPort 5554
+HttpBindAddress 0.0.0.0
+MaxClients 1000
+MaxBandwidth 200000
+NoDaemon
+
+<Feed feed1.ffm>
+File /tmp/feed1.ffm
+FileMaxSize 5M
+</Feed>
+
+
+<Stream test.mpeg4>
+Feed feed1.ffm
+Format rtp
+#RTSPOption rtsp_transport tcp
+#RTSPOption rtsp_flags listen
+VideoCodec libx264
+VideoFrameRate 60
+#VideoBufferSize 100000
+VideoBitRate 1200
+#VideoQMin 1
+#VideoQMax 3
+VideoSize 832x608
+#PreRoll 0
+Noaudio
+</Stream>
+```
+And **ffserver** starts with command 
+```
+ffserver -d
+```
+
+And the result RTSP stream can be read as
+```
+ffplay rtsp://ip:5554/test.mpeg4
+```
 
 ### Author
 
